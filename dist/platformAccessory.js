@@ -254,8 +254,11 @@ class EatonXStorageAccessory {
         // 4. Grid Power & Direction
         this.gridWatts = Math.max(0, Math.round(flow.gridValue ?? 0));
         const gridRole = (flow.gridRole || '').toUpperCase();
-        this.isGridExporting = gridRole === 'PRODUCER';
-        this.isGridImporting = gridRole === 'CONSUMER';
+        // In Eaton xStorage UI arrows:
+        // - gridRole === 'CONSUMER' means the grid is consuming power from the system -> Immissione in Rete (Export / green arrow UP)
+        // - gridRole === 'PRODUCER' means the grid is providing power to the system -> Prelievo da Rete (Import / red arrow DOWN)
+        this.isGridExporting = gridRole === 'CONSUMER';
+        this.isGridImporting = gridRole === 'PRODUCER';
         this.gridExportWatts = this.isGridExporting ? this.gridWatts : 0;
         this.gridImportWatts = this.isGridImporting ? this.gridWatts : 0;
 
