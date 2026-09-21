@@ -41,11 +41,23 @@
         "maximum": 300,
         "description": "Frequenza di campionamento dei dati di produzione, carica e consumi (default: 10s)"
       },
-      "exposeLuxSensors": {
-        "title": "Mostra Potenze come Sensori Lux in Apple Home",
+      "exposeOutlets": {
+        "title": "Mostra come Prese Intelligenti (Outlet) in Apple Home",
         "type": "boolean",
         "default": true,
-        "description": "Mostra i valori di Watt (Produzione Solare, Rete, Consumi Casa) come sensori di luce (1 Lux = 1 W) leggibili direttamente nell'app Casa di Apple"
+        "description": "Crea prese virtuali (Produzione Solare, Consumi Casa, Immissione in Rete, Carica Batteria) con icona attiva/in-uso in Apple Home ed esposizione dei Watt reali nell'app Eve"
+      },
+      "exposeLuxSensors": {
+        "title": "Mostra Potenze come Sensori Lux (Opzionale)",
+        "type": "boolean",
+        "default": false,
+        "description": "Abilita se desideri anche i sensori numerici di luce (1 Lux = 1 W)"
+      },
+      "exposeContactSensor": {
+        "title": "Sensore Contatto 'Immissione in Rete'",
+        "type": "boolean",
+        "default": true,
+        "description": "Crea un sensore di contatto aperto quando stai immettendo energia solare in rete per automazioni"
       },
       "exposeEveSensors": {
         "title": "Abilita Caratteristiche Compatibili Eve Energy",
@@ -56,10 +68,10 @@
       "lowBatteryThreshold": {
         "title": "Soglia Allarme Batteria Scarica (%)",
         "type": "integer",
-        "default": 15,
+        "default": 10,
         "minimum": 1,
         "maximum": 50,
-        "description": "Percentuale al di sotto della quale viene segnalata la batteria scarica a HomeKit"
+        "description": "Percentuale al di sotto della quale viene segnalata la batteria scarica a HomeKit (default: 10%)"
       }
     }
   },
@@ -79,11 +91,13 @@
     },
     {
       "type": "fieldset",
-      "title": "Opzioni e Visualizzazione HomeKit",
+      "title": "Visualizzazione Apple Home ed Eve",
       "items": [
-        "pollInterval",
+        "exposeOutlets",
+        "exposeContactSensor",
         "exposeLuxSensors",
         "exposeEveSensors",
+        "pollInterval",
         "lowBatteryThreshold"
       ]
     }

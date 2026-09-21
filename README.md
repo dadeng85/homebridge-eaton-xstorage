@@ -10,19 +10,19 @@ Plugin Homebridge (Dynamic Platform) per integrare l'inverter fotovoltaico e sis
 
 - 🔋 **Icona Batteria Nativa Apple Home (`BatteryService`)**:
   - Percentuale di carica reale (`State of Charge` da 0% a 100%)
-  - Stato di ricarica in corso (in carica / non in carica / scarica)
+  - Stato di ricarica in corso (in carica col fulmine / non in carica)
   - Notifica automatica batteria scarica sotto la soglia di riserva configurabile.
-- ☀️ **Produzione Fotovoltaica Solare**:
-  - Mostrata come sensore di luce in Apple Home (dove **1 Lux = 1 Watt** di produzione solare).
-  - Compatibile con l'app **Eve** con la caratteristica nativa `CurrentConsumption` (Watt reali e grafici storici).
-- 🏠 **Consumo Domestico (Carichi Casa)**:
-  - Potenza assorbita istantanea dell'abitazione in Watt.
-- ⚡ **Rete Elettrica (Prelievo / Immissione)**:
-  - Potenza istantanea scambiata con la rete elettrica.
-  - **Sensore di Contatto "Grid Exporting"**:
-    - Risulta **Aperto** quando immetti energia nella rete (surplus solare).
-    - Risulta **Chiuso** quando stai prelevando energia dalla rete o sei a zero.
-    - 💡 *Ideale per creare automazioni HomeKit!* (Es: *"Quando l'inverter immette energia in rete, accendi la pompa di calore o avvia la lavatrice"*).
+- 🔌 **Prese Intelligenti Virtuali (`Service.Outlet`)**:
+  - **Produzione Solare**: attiva e "In Uso" quando i pannelli solari generano energia (> 20 W), spenta di notte.
+  - **Consumi Casa**: attiva quando l'abitazione assorbe corrente.
+  - **Immissione in Rete**: attiva e "In Uso" quando c'è surplus solare immesso in rete.
+  - **Carica Batteria**: attiva quando la batteria è in fase di ricarica attiva.
+- ⚡ **Compatibilità Avanzata con l'App Eve**:
+  - Ciascuna presa espone la caratteristica ufficiale Eve Energy `CurrentConsumption` (Watt reali `W` e grafici a curva giornalieri!).
+- 🔔 **Sensore di Contatto per Automazioni**:
+  - `Grid Exporting`: Aperto quando immetti energia solare in rete. Ottimo per avviare carichi pesanti (es. lavatrice, climatizzatore).
+- 💡 **Sensori Lux (Opzionale)**:
+  - Disponibili disattivati di default se si preferisce vedere anche il valore numerico (1 Lux = 1 W).
 - 🔄 **Connessione Locale e Veloce**:
   - Comunica direttamente con l'inverter sulla rete locale via HTTPS (porta 443).
   - Refresh periodico configurabile (default: ogni 10 secondi).

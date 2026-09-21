@@ -3,17 +3,23 @@ import { EatonXStoragePlatform } from './platform';
 import { EatonDeviceStatus, EatonDeviceInfo } from './eatonClient';
 
 export class EatonXStorageAccessory {
-  // Primary Battery Service
+  // Primary Battery Service (Native HomeKit)
   private readonly batteryService: Service;
 
-  // Power measurement services (using LightSensor for native Apple Home display: 1 Lux = 1 Watt)
-  private readonly solarSensorService?: Service;
-  private readonly houseLoadSensorService?: Service;
-  private readonly gridSensorService?: Service;
-  private readonly batteryFlowSensorService?: Service;
+  // Outlet Services (Prese virtuali per Apple Home con stato "In uso" e Watt Eve)
+  private readonly solarOutletService?: Service;
+  private readonly houseLoadOutletService?: Service;
+  private readonly gridExportOutletService?: Service;
+  private readonly batteryOutletService?: Service;
 
-  // Automation sensor: ContactSensor that opens when exporting to the grid
-  private readonly gridExportSensorService?: Service;
+  // Optional Lux LightSensors (1 Lux = 1 W)
+  private readonly solarLuxService?: Service;
+  private readonly houseLoadLuxService?: Service;
+  private readonly gridLuxService?: Service;
+  private readonly batteryFlowLuxService?: Service;
+
+  // Automation ContactSensor
+  private readonly gridExportContactService?: Service;
 
   // State cache
   private stateOfCharge = 100;
@@ -26,7 +32,6 @@ export class EatonXStorageAccessory {
   private isGridExporting = false;
   private batteryEnergyFlowWatts = 0;
 
-  // Eve custom characteristic class definition
   private EveCurrentConsumption: any = null;
 
   constructor(
@@ -53,7 +58,7 @@ export class EatonXStorageAccessory {
       this.initEveCharacteristics();
     }
 
-    // 1. Primary Service: Battery
+    // 1. Primary Service: Battery (Official native Apple HomeKit Battery)
     this.batteryService = this.accessory.getService(Service.Battery)
       || this.accessory.addService(Service.Battery, `${this.platform.config.name || 'Eaton xStorage'} Battery`);
 
@@ -66,50 +71,138 @@ export class EatonXStorageAccessory {
     this.batteryService.getCharacteristic(Characteristic.StatusLowBattery)
       .onGet(() => this.isLowBattery);
 
-    // 2. Optional Lux Sensors for Apple Home (1 Lux = 1 Watt)
-    if (this.platform.config.exposeLuxSensors !== false) {
-      // Solar Production Sensor
-      this.solarSensorService = this.accessory.getService('Solar Production')
-        || this.accessory.addService(Service.LightSensor, 'Solar Production', 'solar-production-sub');
+    // 2. Prese Intelligenti (Outlets) - Modalità consigliata per Apple Home
+    const enableOutlets = this.platform.config.exposeOutlets !== false; // Default: true
+    if (enableOutlets) {
+      // Produzione Solare Outlet
+      this.solarOutletService = this.accessory.getService('Produzione Solare')
+        || this.accessory.addService(Service.Outlet, 'Produzione Solare', 'solar-outlet-sub');
 
-      this.solarSensorService.getCharacteristic(Characteristic.CurrentAmbientLightLevel)
+      this.solarOutletService.getCharacteristic(Characteristic.On)
+        .onGet(() => this.solarWatts > 20)
+        .onSet((value: CharacteristicValue) => {
+          // Keep read-only / reflect real state
+          setTimeout(() => {
+            this.solarOutletService?.updateCharacteristic(Characteristic.On, this.solarWatts > 20);
+          }, 100);
+        });
+
+      this.solarOutletService.getCharacteristic(Characteristic.OutletInUse)
+        .onGet(() => this.solarWatts > 20);
+
+      this.addEveConsumptionCharacteristic(this.solarOutletService, () => this.solarWatts);
+
+      // Consumi Casa Outlet
+      this.houseLoadOutletService = this.accessory.getService('Consumi Casa')
+        || this.accessory.addService(Service.Outlet, 'Consumi Casa', 'house-load-outlet-sub');
+
+      this.houseLoadOutletService.getCharacteristic(Characteristic.On)
+        .onGet(() => true)
+        .onSet(() => {
+          setTimeout(() => {
+            this.houseLoadOutletService?.updateCharacteristic(Characteristic.On, true);
+          }, 100);
+        });
+
+      this.houseLoadOutletService.getCharacteristic(Characteristic.OutletInUse)
+        .onGet(() => this.houseLoadWatts > 10);
+
+      this.addEveConsumptionCharacteristic(this.houseLoadOutletService, () => this.houseLoadWatts);
+
+      // Immissione in Rete Outlet
+      this.gridExportOutletService = this.accessory.getService('Immissione in Rete')
+        || this.accessory.addService(Service.Outlet, 'Immissione in Rete', 'grid-export-outlet-sub');
+
+      this.gridExportOutletService.getCharacteristic(Characteristic.On)
+        .onGet(() => this.isGridExporting)
+        .onSet(() => {
+          setTimeout(() => {
+            this.gridExportOutletService?.updateCharacteristic(Characteristic.On, this.isGridExporting);
+          }, 100);
+        });
+
+      this.gridExportOutletService.getCharacteristic(Characteristic.OutletInUse)
+        .onGet(() => this.isGridExporting);
+
+      this.addEveConsumptionCharacteristic(this.gridExportOutletService, () => this.isGridExporting ? this.gridWatts : 0);
+
+      // Carica Batteria Outlet
+      this.batteryOutletService = this.accessory.getService('Carica Batteria')
+        || this.accessory.addService(Service.Outlet, 'Carica Batteria', 'battery-outlet-sub');
+
+      this.batteryOutletService.getCharacteristic(Characteristic.On)
+        .onGet(() => this.batteryChargingState === 1)
+        .onSet(() => {
+          setTimeout(() => {
+            this.batteryOutletService?.updateCharacteristic(Characteristic.On, this.batteryChargingState === 1);
+          }, 100);
+        });
+
+      this.batteryOutletService.getCharacteristic(Characteristic.OutletInUse)
+        .onGet(() => this.batteryChargingState === 1);
+
+      this.addEveConsumptionCharacteristic(this.batteryOutletService, () => this.batteryEnergyFlowWatts);
+    } else {
+      // Remove outlets if disabled
+      this.removeServiceByName('Produzione Solare', Service.Outlet);
+      this.removeServiceByName('Consumi Casa', Service.Outlet);
+      this.removeServiceByName('Immissione in Rete', Service.Outlet);
+      this.removeServiceByName('Carica Batteria', Service.Outlet);
+    }
+
+    // 3. Optional Lux LightSensors (Default: disabled when outlets are used)
+    const enableLux = this.platform.config.exposeLuxSensors === true;
+    if (enableLux) {
+      this.solarLuxService = this.accessory.getService('Solar Lux')
+        || this.accessory.addService(Service.LightSensor, 'Solar Lux', 'solar-lux-sub');
+      this.solarLuxService.getCharacteristic(Characteristic.CurrentAmbientLightLevel)
         .onGet(() => Math.max(0.0001, this.solarWatts));
 
-      this.addEveConsumptionCharacteristic(this.solarSensorService, () => this.solarWatts);
-
-      // House Consumption Sensor
-      this.houseLoadSensorService = this.accessory.getService('House Consumption')
-        || this.accessory.addService(Service.LightSensor, 'House Consumption', 'house-consumption-sub');
-
-      this.houseLoadSensorService.getCharacteristic(Characteristic.CurrentAmbientLightLevel)
+      this.houseLoadLuxService = this.accessory.getService('House Lux')
+        || this.accessory.addService(Service.LightSensor, 'House Lux', 'house-lux-sub');
+      this.houseLoadLuxService.getCharacteristic(Characteristic.CurrentAmbientLightLevel)
         .onGet(() => Math.max(0.0001, this.houseLoadWatts));
 
-      this.addEveConsumptionCharacteristic(this.houseLoadSensorService, () => this.houseLoadWatts);
-
-      // Grid Power Sensor
-      this.gridSensorService = this.accessory.getService('Grid Power')
-        || this.accessory.addService(Service.LightSensor, 'Grid Power', 'grid-power-sub');
-
-      this.gridSensorService.getCharacteristic(Characteristic.CurrentAmbientLightLevel)
+      this.gridLuxService = this.accessory.getService('Grid Lux')
+        || this.accessory.addService(Service.LightSensor, 'Grid Lux', 'grid-lux-sub');
+      this.gridLuxService.getCharacteristic(Characteristic.CurrentAmbientLightLevel)
         .onGet(() => Math.max(0.0001, this.gridWatts));
 
-      this.addEveConsumptionCharacteristic(this.gridSensorService, () => this.gridWatts);
-
-      // Battery Flow Sensor
-      this.batteryFlowSensorService = this.accessory.getService('Battery Flow')
-        || this.accessory.addService(Service.LightSensor, 'Battery Flow', 'battery-flow-sub');
-
-      this.batteryFlowSensorService.getCharacteristic(Characteristic.CurrentAmbientLightLevel)
+      this.batteryFlowLuxService = this.accessory.getService('Battery Lux')
+        || this.accessory.addService(Service.LightSensor, 'Battery Lux', 'battery-lux-sub');
+      this.batteryFlowLuxService.getCharacteristic(Characteristic.CurrentAmbientLightLevel)
         .onGet(() => Math.max(0.0001, this.batteryEnergyFlowWatts));
+    } else {
+      // Clean up old LightSensor services from cache so they disappear from Apple Home
+      this.removeServiceByName('Solar Production', Service.LightSensor);
+      this.removeServiceByName('House Consumption', Service.LightSensor);
+      this.removeServiceByName('Grid Power', Service.LightSensor);
+      this.removeServiceByName('Battery Flow', Service.LightSensor);
+      this.removeServiceByName('Solar Lux', Service.LightSensor);
+      this.removeServiceByName('House Lux', Service.LightSensor);
+      this.removeServiceByName('Grid Lux', Service.LightSensor);
+      this.removeServiceByName('Battery Lux', Service.LightSensor);
+    }
 
-      this.addEveConsumptionCharacteristic(this.batteryFlowSensorService, () => this.batteryEnergyFlowWatts);
-
-      // Grid Export Contact Sensor (Open = Exporting / Iniezione in rete, Closed = In prelievo o neutro)
-      this.gridExportSensorService = this.accessory.getService('Grid Exporting')
+    // 4. Contact sensor for smart automations (optional)
+    if (this.platform.config.exposeContactSensor !== false) {
+      this.gridExportContactService = this.accessory.getService('Grid Exporting')
         || this.accessory.addService(Service.ContactSensor, 'Grid Exporting', 'grid-export-sub');
 
-      this.gridExportSensorService.getCharacteristic(Characteristic.ContactSensorState)
-        .onGet(() => this.isGridExporting ? Characteristic.ContactSensorState.CONTACT_NOT_DETECTED : Characteristic.ContactSensorState.CONTACT_DETECTED);
+      this.gridExportContactService.getCharacteristic(Characteristic.ContactSensorState)
+        .onGet(() => this.isGridExporting
+          ? Characteristic.ContactSensorState.CONTACT_NOT_DETECTED
+          : Characteristic.ContactSensorState.CONTACT_DETECTED);
+    } else {
+      this.removeServiceByName('Grid Exporting', Service.ContactSensor);
+    }
+  }
+
+  private removeServiceByName(name: string, serviceType: any) {
+    const s = this.accessory.getService(name);
+    if (s && s.UUID === serviceType.UUID) {
+      this.platform.log.info(`[EatonAccessory] Removing obsolete service: ${name}`);
+      this.accessory.removeService(s);
     }
   }
 
@@ -118,8 +211,6 @@ export class EatonXStorageAccessory {
    */
   private initEveCharacteristics() {
     const { Characteristic } = this.platform;
-
-    // UUID for Eve Current Consumption in Watts
     const EVE_CONSUMPTION_UUID = 'E863F10D-079E-48FF-8F24-E2C60F744619';
 
     class CustomEveCurrentConsumption extends Characteristic {
@@ -198,41 +289,59 @@ export class EatonXStorageAccessory {
     // 5. Battery Flow
     this.batteryEnergyFlowWatts = Math.max(0, Math.round(flow.batteryEnergyFlow ?? 0));
 
-    // Update Apple Home Lux Sensors
-    if (this.solarSensorService) {
-      const luxSolar = Math.max(0.0001, this.solarWatts);
-      this.solarSensorService.updateCharacteristic(Characteristic.CurrentAmbientLightLevel, luxSolar);
-      if (this.EveCurrentConsumption && this.solarSensorService.testCharacteristic(this.EveCurrentConsumption)) {
-        this.solarSensorService.updateCharacteristic(this.EveCurrentConsumption, this.solarWatts);
+    // Update Outlets (Prese Apple Home)
+    if (this.solarOutletService) {
+      const isSolarActive = this.solarWatts > 20;
+      this.solarOutletService.updateCharacteristic(Characteristic.On, isSolarActive);
+      this.solarOutletService.updateCharacteristic(Characteristic.OutletInUse, isSolarActive);
+      if (this.EveCurrentConsumption && this.solarOutletService.testCharacteristic(this.EveCurrentConsumption)) {
+        this.solarOutletService.updateCharacteristic(this.EveCurrentConsumption, this.solarWatts);
       }
     }
 
-    if (this.houseLoadSensorService) {
-      const luxLoad = Math.max(0.0001, this.houseLoadWatts);
-      this.houseLoadSensorService.updateCharacteristic(Characteristic.CurrentAmbientLightLevel, luxLoad);
-      if (this.EveCurrentConsumption && this.houseLoadSensorService.testCharacteristic(this.EveCurrentConsumption)) {
-        this.houseLoadSensorService.updateCharacteristic(this.EveCurrentConsumption, this.houseLoadWatts);
+    if (this.houseLoadOutletService) {
+      const isLoadActive = this.houseLoadWatts > 10;
+      this.houseLoadOutletService.updateCharacteristic(Characteristic.On, true);
+      this.houseLoadOutletService.updateCharacteristic(Characteristic.OutletInUse, isLoadActive);
+      if (this.EveCurrentConsumption && this.houseLoadOutletService.testCharacteristic(this.EveCurrentConsumption)) {
+        this.houseLoadOutletService.updateCharacteristic(this.EveCurrentConsumption, this.houseLoadWatts);
       }
     }
 
-    if (this.gridSensorService) {
-      const luxGrid = Math.max(0.0001, this.gridWatts);
-      this.gridSensorService.updateCharacteristic(Characteristic.CurrentAmbientLightLevel, luxGrid);
-      if (this.EveCurrentConsumption && this.gridSensorService.testCharacteristic(this.EveCurrentConsumption)) {
-        this.gridSensorService.updateCharacteristic(this.EveCurrentConsumption, this.gridWatts);
+    if (this.gridExportOutletService) {
+      this.gridExportOutletService.updateCharacteristic(Characteristic.On, this.isGridExporting);
+      this.gridExportOutletService.updateCharacteristic(Characteristic.OutletInUse, this.isGridExporting);
+      if (this.EveCurrentConsumption && this.gridExportOutletService.testCharacteristic(this.EveCurrentConsumption)) {
+        this.gridExportOutletService.updateCharacteristic(this.EveCurrentConsumption, this.isGridExporting ? this.gridWatts : 0);
       }
     }
 
-    if (this.batteryFlowSensorService) {
-      const luxBattery = Math.max(0.0001, this.batteryEnergyFlowWatts);
-      this.batteryFlowSensorService.updateCharacteristic(Characteristic.CurrentAmbientLightLevel, luxBattery);
-      if (this.EveCurrentConsumption && this.batteryFlowSensorService.testCharacteristic(this.EveCurrentConsumption)) {
-        this.batteryFlowSensorService.updateCharacteristic(this.EveCurrentConsumption, this.batteryEnergyFlowWatts);
+    if (this.batteryOutletService) {
+      const isBatteryCharging = this.batteryChargingState === 1;
+      this.batteryOutletService.updateCharacteristic(Characteristic.On, isBatteryCharging);
+      this.batteryOutletService.updateCharacteristic(Characteristic.OutletInUse, isBatteryCharging);
+      if (this.EveCurrentConsumption && this.batteryOutletService.testCharacteristic(this.EveCurrentConsumption)) {
+        this.batteryOutletService.updateCharacteristic(this.EveCurrentConsumption, this.batteryEnergyFlowWatts);
       }
     }
 
-    if (this.gridExportSensorService) {
-      this.gridExportSensorService.updateCharacteristic(
+    // Update Lux Sensors (if enabled)
+    if (this.solarLuxService) {
+      this.solarLuxService.updateCharacteristic(Characteristic.CurrentAmbientLightLevel, Math.max(0.0001, this.solarWatts));
+    }
+    if (this.houseLoadLuxService) {
+      this.houseLoadLuxService.updateCharacteristic(Characteristic.CurrentAmbientLightLevel, Math.max(0.0001, this.houseLoadWatts));
+    }
+    if (this.gridLuxService) {
+      this.gridLuxService.updateCharacteristic(Characteristic.CurrentAmbientLightLevel, Math.max(0.0001, this.gridWatts));
+    }
+    if (this.batteryFlowLuxService) {
+      this.batteryFlowLuxService.updateCharacteristic(Characteristic.CurrentAmbientLightLevel, Math.max(0.0001, this.batteryEnergyFlowWatts));
+    }
+
+    // Update Contact Sensor
+    if (this.gridExportContactService) {
+      this.gridExportContactService.updateCharacteristic(
         Characteristic.ContactSensorState,
         this.isGridExporting
           ? Characteristic.ContactSensorState.CONTACT_NOT_DETECTED
