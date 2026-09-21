@@ -2,7 +2,7 @@
   "pluginAlias": "EatonXStorage",
   "pluginType": "platform",
   "singular": true,
-  "headerDisplay": "Integra il tuo sistema di accumulo e inverter fotovoltaico Eaton xStorage in Apple Home / HomeKit.",
+  "headerDisplay": "Integra il tuo inverter e sistema di accumulo Eaton xStorage in Apple Home / HomeKit.",
   "schema": {
     "type": "object",
     "properties": {
@@ -13,65 +13,60 @@
         "required": true
       },
       "ip": {
-        "title": "Indirizzo IP o Hostname Inverter",
+        "title": "Indirizzo IP Inverter",
         "type": "string",
         "default": "192.168.1.73",
-        "required": true,
-        "description": "Indirizzo IP locale dell'inverter Eaton xStorage sulla tua rete locale"
+        "required": true
       },
       "username": {
         "title": "Nome Utente",
         "type": "string",
         "default": "",
-        "required": true,
-        "description": "Nome utente utilizzato per accedere all'interfaccia web dell'inverter"
+        "required": true
       },
       "password": {
         "title": "Password",
         "type": "string",
         "default": "",
-        "required": true,
-        "description": "Password utilizzata per accedere all'interfaccia web dell'inverter"
+        "required": true
       },
       "pollInterval": {
         "title": "Intervallo di Aggiornamento (secondi)",
         "type": "integer",
         "default": 10,
         "minimum": 3,
-        "maximum": 300,
-        "description": "Frequenza di campionamento dei dati di produzione, carica e consumi (default: 10s)"
-      },
-      "exposeOutlets": {
-        "title": "Mostra come Prese Intelligenti (Outlet) in Apple Home",
-        "type": "boolean",
-        "default": true,
-        "description": "Crea prese virtuali (Produzione Solare, Consumi Casa, Immissione in Rete, Carica Batteria) con icona attiva/in-uso in Apple Home ed esposizione dei Watt reali nell'app Eve"
-      },
-      "exposeLuxSensors": {
-        "title": "Mostra Potenze come Sensori Lux (Opzionale)",
-        "type": "boolean",
-        "default": false,
-        "description": "Abilita se desideri anche i sensori numerici di luce (1 Lux = 1 W)"
-      },
-      "exposeContactSensor": {
-        "title": "Sensore Contatto 'Immissione in Rete'",
-        "type": "boolean",
-        "default": true,
-        "description": "Crea un sensore di contatto aperto quando stai immettendo energia solare in rete per automazioni"
-      },
-      "exposeEveSensors": {
-        "title": "Abilita Caratteristiche Compatibili Eve Energy",
-        "type": "boolean",
-        "default": true,
-        "description": "Aggiunge caratteristiche di potenza (W reali) compatibili con l'applicazione Eve per grafici e statistiche avanzate"
+        "maximum": 300
       },
       "lowBatteryThreshold": {
-        "title": "Soglia Allarme Batteria Scarica (%)",
+        "title": "Soglia Batteria Scarica (%)",
         "type": "integer",
         "default": 10,
         "minimum": 1,
-        "maximum": 50,
-        "description": "Percentuale al di sotto della quale viene segnalata la batteria scarica a HomeKit (default: 10%)"
+        "maximum": 50
+      },
+      "showPowerSensors": {
+        "title": "Mostra Sensori di Potenza Watt (1 Lux = 1 W)",
+        "type": "boolean",
+        "default": true,
+        "description": "Crea sensori di luce che visualizzano i Watt esatti (Solare, Consumi Casa, Immissione/Prelievo Rete, Carica/Scarica Batteria)."
+      },
+      "showPercentages": {
+        "title": "Mostra Percentuali (Autoconsumo / Autosufficienza)",
+        "type": "boolean",
+        "default": true,
+        "description": "Crea sensori di percentuale nativi Apple Home per Autoconsumo e Autosufficienza Energetica."
+      },
+      "showOutlets": {
+        "title": "Mostra Prese di Stato (On/Off e In-Uso)",
+        "type": "boolean",
+        "default": true,
+        "description": "Crea prese intelligenti native Apple Home che mostrano lo stato attivo/inattivo per Produzione, Consumi, Rete e Batteria."
+      },
+      "showContactSensor": {
+        "title": "Mostra Sensore Contatto per Automazioni Surplus Solare",
+        "type": "boolean",
+        "default": true,
+        "description": "Crea un sensore di contatto che si apre quando stai immettendo energia in rete, per triggerare automazioni native Apple Home."
       }
     }
   },
@@ -91,14 +86,20 @@
     },
     {
       "type": "fieldset",
-      "title": "Visualizzazione Apple Home ed Eve",
+      "title": "Opzioni e Soglie",
       "items": [
-        "exposeOutlets",
-        "exposeContactSensor",
-        "exposeLuxSensors",
-        "exposeEveSensors",
         "pollInterval",
         "lowBatteryThreshold"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "Elementi Visibili in Apple Home",
+      "items": [
+        "showPowerSensors",
+        "showPercentages",
+        "showOutlets",
+        "showContactSensor"
       ]
     }
   ]
