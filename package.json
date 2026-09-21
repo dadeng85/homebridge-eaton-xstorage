@@ -1,0 +1,41 @@
+{
+  "name": "homebridge-eaton-xstorage",
+  "version": "1.0.0",
+  "description": "Homebridge plugin for Eaton xStorage solar inverters and energy storage systems",
+  "license": "Apache-2.0",
+  "author": "David",
+  "keywords": [
+    "homebridge-plugin",
+    "eaton",
+    "xstorage",
+    "solar",
+    "photovoltaic",
+    "inverter",
+    "battery",
+    "homekit"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "config.schema.json"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "homebridge": ">=1.6.0"
+  },
+  "scripts": {
+    "build": "rimraf ./dist && tsc",
+    "prepublishOnly": "npm run build",
+    "watch": "tsc --watch"
+  },
+  "dependencies": {
+    "axios": "^1.7.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "homebridge": "^1.8.0",
+    "rimraf": "^5.0.7",
+    "typescript": "^5.4.5"
+  }
+}

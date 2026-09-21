@@ -1,0 +1,91 @@
+{
+  "pluginAlias": "EatonXStorage",
+  "pluginType": "platform",
+  "singular": true,
+  "headerDisplay": "Integra il tuo sistema di accumulo e inverter fotovoltaico Eaton xStorage in Apple Home / HomeKit.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Nome Piattaforma",
+        "type": "string",
+        "default": "Eaton xStorage",
+        "required": true
+      },
+      "ip": {
+        "title": "Indirizzo IP o Hostname Inverter",
+        "type": "string",
+        "default": "192.168.1.73",
+        "required": true,
+        "description": "Indirizzo IP locale dell'inverter Eaton xStorage sulla tua rete locale"
+      },
+      "username": {
+        "title": "Nome Utente",
+        "type": "string",
+        "default": "",
+        "required": true,
+        "description": "Nome utente utilizzato per accedere all'interfaccia web dell'inverter"
+      },
+      "password": {
+        "title": "Password",
+        "type": "string",
+        "default": "",
+        "required": true,
+        "description": "Password utilizzata per accedere all'interfaccia web dell'inverter"
+      },
+      "pollInterval": {
+        "title": "Intervallo di Aggiornamento (secondi)",
+        "type": "integer",
+        "default": 10,
+        "minimum": 3,
+        "maximum": 300,
+        "description": "Frequenza di campionamento dei dati di produzione, carica e consumi (default: 10s)"
+      },
+      "exposeLuxSensors": {
+        "title": "Mostra Potenze come Sensori Lux in Apple Home",
+        "type": "boolean",
+        "default": true,
+        "description": "Mostra i valori di Watt (Produzione Solare, Rete, Consumi Casa) come sensori di luce (1 Lux = 1 W) leggibili direttamente nell'app Casa di Apple"
+      },
+      "exposeEveSensors": {
+        "title": "Abilita Caratteristiche Compatibili Eve Energy",
+        "type": "boolean",
+        "default": true,
+        "description": "Aggiunge caratteristiche di potenza (W reali) compatibili con l'applicazione Eve per grafici e statistiche avanzate"
+      },
+      "lowBatteryThreshold": {
+        "title": "Soglia Allarme Batteria Scarica (%)",
+        "type": "integer",
+        "default": 15,
+        "minimum": 1,
+        "maximum": 50,
+        "description": "Percentuale al di sotto della quale viene segnalata la batteria scarica a HomeKit"
+      }
+    }
+  },
+  "layout": [
+    {
+      "type": "fieldset",
+      "title": "Connessione Dispositivo",
+      "items": [
+        "name",
+        "ip",
+        "username",
+        {
+          "key": "password",
+          "type": "password"
+        }
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "Opzioni e Visualizzazione HomeKit",
+      "items": [
+        "pollInterval",
+        "exposeLuxSensors",
+        "exposeEveSensors",
+        "lowBatteryThreshold"
+      ]
+    }
+  ]
+}

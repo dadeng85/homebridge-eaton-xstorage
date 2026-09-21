@@ -1,0 +1,9 @@
+﻿cancel
+cloned
+drag
+dragend
+drop
+out
+over
+remove
+shadow
