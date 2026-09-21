@@ -126,12 +126,12 @@ export class EatonXStorageAccessory {
       static readonly UUID = EVE_CONSUMPTION_UUID;
       constructor() {
         super('Current Consumption', EVE_CONSUMPTION_UUID, {
-          format: Characteristic.Formats.FLOAT,
+          format: 'float' as any,
           unit: 'W',
           minValue: 0,
           maxValue: 100000,
           minStep: 0.1,
-          perms: [Characteristic.Perms.PAIRED_READ, Characteristic.Perms.NOTIFY],
+          perms: ['pr', 'ev'] as any,
         });
         this.value = 0;
       }

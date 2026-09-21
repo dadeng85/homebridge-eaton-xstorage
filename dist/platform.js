@@ -47,8 +47,10 @@ class EatonXStoragePlatform {
             this.log.info(`[EatonXStoragePlatform] Connecting to Eaton xStorage inverter at ${host}...`);
             await this.eatonClient.login();
             deviceInfo = await this.eatonClient.getDeviceInfo();
+            const model = deviceInfo.inverterModelName || deviceInfo.model || 'xStorage';
+            const serial = deviceInfo.inverterSerialNumber || deviceInfo.serialNumber || deviceInfo.id || 'N/A';
             this.log.info(
-                `[EatonXStoragePlatform] Successfully connected to Eaton xStorage! Model: ${deviceInfo.model || 'xStorage'}, Serial: ${deviceInfo.serialNumber || deviceInfo.id || 'N/A'}`,
+                `[EatonXStoragePlatform] Successfully connected to Eaton xStorage! Model: ${model}, Serial: ${serial}`,
             );
         }
         catch (err) {
@@ -57,7 +59,7 @@ class EatonXStoragePlatform {
             );
         }
 
-        const uuidSeed = deviceInfo.serialNumber || deviceInfo.id || host;
+        const uuidSeed = deviceInfo.inverterSerialNumber || deviceInfo.serialNumber || deviceInfo.id || host;
         const uuid = this.api.hap.uuid.generate(uuidSeed);
         const existingAccessory = this.accessories.find((acc) => acc.UUID === uuid);
         const accessoryName = this.config.name || 'Eaton xStorage';

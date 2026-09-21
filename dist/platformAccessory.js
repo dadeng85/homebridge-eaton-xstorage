@@ -101,12 +101,12 @@ class EatonXStorageAccessory {
         class CustomEveCurrentConsumption extends Characteristic {
             constructor() {
                 super('Current Consumption', EVE_CONSUMPTION_UUID, {
-                    format: Characteristic.Formats.FLOAT,
+                    format: 'float',
                     unit: 'W',
                     minValue: 0,
                     maxValue: 100000,
                     minStep: 0.1,
-                    perms: [Characteristic.Perms.PAIRED_READ, Characteristic.Perms.NOTIFY],
+                    perms: ['pr', 'ev'],
                 });
                 this.value = 0;
             }

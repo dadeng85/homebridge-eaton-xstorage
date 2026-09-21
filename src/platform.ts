@@ -67,8 +67,10 @@ export class EatonXStoragePlatform implements DynamicPlatformPlugin {
       this.log.info(`[EatonXStoragePlatform] Connecting to Eaton xStorage inverter at ${host}...`);
       await this.eatonClient.login();
       deviceInfo = await this.eatonClient.getDeviceInfo();
+      const model = (deviceInfo.inverterModelName as string) || (deviceInfo.model as string) || 'xStorage';
+      const serial = (deviceInfo.inverterSerialNumber as string) || (deviceInfo.serialNumber as string) || (deviceInfo.id as string) || 'N/A';
       this.log.info(
-        `[EatonXStoragePlatform] Successfully connected to Eaton xStorage! Model: ${deviceInfo.model || 'xStorage'}, Serial: ${deviceInfo.serialNumber || deviceInfo.id || 'N/A'}`,
+        `[EatonXStoragePlatform] Successfully connected to Eaton xStorage! Model: ${model}, Serial: ${serial}`,
       );
     } catch (err: any) {
       this.log.warn(
@@ -77,7 +79,7 @@ export class EatonXStoragePlatform implements DynamicPlatformPlugin {
     }
 
     // Generate unique accessory UUID
-    const uuidSeed = (deviceInfo.serialNumber as string) || (deviceInfo.id as string) || host;
+    const uuidSeed = (deviceInfo.inverterSerialNumber as string) || (deviceInfo.serialNumber as string) || (deviceInfo.id as string) || host;
     const uuid = this.api.hap.uuid.generate(uuidSeed);
 
     const existingAccessory = this.accessories.find((acc) => acc.UUID === uuid);
